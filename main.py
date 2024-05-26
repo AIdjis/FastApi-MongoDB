@@ -3,8 +3,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app import product
 import os 
-from app import database
+import dotenv
 
+
+
+dotenv.load_dotenv()
 app = FastAPI()
 
 app.include_router(product.router)
