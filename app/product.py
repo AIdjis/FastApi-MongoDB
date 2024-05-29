@@ -56,6 +56,18 @@ async def delete_product(id:str):
     return {"details":"Product deleted"}
 
 
+# this is for updating a product
+@router.patch("/{id}",status_code=status.HTTP_202_ACCEPTED)
+async def update_product(id:str,product:CreateProduct):
+    # print(dict(product))
+    product_mapped=collection.find_one_and_update({"_id":ObjectId(id)},{"$set":dict(product)})    
+    if product_mapped==None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
+    
+    product_updated=collection.find_one({"_id":ObjectId(id)})
+    return deserialize_product(product_updated)
+
+
 
 
 
