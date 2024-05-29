@@ -6,3 +6,6 @@ __pycache__/
 
 # Ignore all env files
 *.env
+
+# Ignore static files
+static/
