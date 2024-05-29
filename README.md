@@ -2,11 +2,11 @@
 
 ###### This market project is an example of how to use FastAPI and MongoDB together.
 
-###### Prerequisites
+#### Prerequisites
 
--python >= 3.9
+- python >= 3.9
 
-###### How to use
+#### How to use
 
 1. Install the requirements
 ```
