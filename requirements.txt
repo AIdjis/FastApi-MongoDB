@@ -1,3 +1,8 @@
 fastapi ==0.111.0
 pymongo==4.7.2
+
+# for uploading images
 aiofiles==23.2.1
+
+# for testing
+pytest==8.2.2
