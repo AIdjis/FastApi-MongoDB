@@ -7,6 +7,7 @@ from typing import List
 import secrets
 import aiofiles
 from datetime import datetime
+import os
 
 
 # this is router for the products
@@ -73,6 +74,9 @@ async def upload_image(request:Request,id:str,images: List[UploadFile] = File(..
 @router.delete("/{id}",status_code=status.HTTP_204_NO_CONTENT)
 async def delete_product(id:str):
     product=collection.find_one({"_id":ObjectId(id)})
+    # removing images from the server (static folder)
+    for image in product["images_url"]:
+        os.remove(str(image))
     if product==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
     collection.delete_one({"_id":ObjectId(id)})
