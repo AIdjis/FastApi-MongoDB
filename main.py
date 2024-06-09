@@ -13,6 +13,7 @@ app = FastAPI()
 
 app.include_router(product.router)
 
+# enable the  cors 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
