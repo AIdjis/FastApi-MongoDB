@@ -11,7 +11,7 @@ import dotenv
 dotenv.load_dotenv()
 app = FastAPI()
 
-app.include_router(product.router)
+app.include_router(product.product_router)
 
 # enable the  cors 
 app.add_middleware(
