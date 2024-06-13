@@ -6,3 +6,9 @@ aiofiles==23.2.1
 
 # for testing
 pytest==8.2.2
+
+# for authentication
+PyJWT==2.8.0
+
+# for hashing
+passlib[bcrypt]==1.7.4

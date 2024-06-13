@@ -8,6 +8,7 @@ import secrets
 import aiofiles
 from datetime import datetime
 import os
+import re
 
 
 # this is router for the products
@@ -65,7 +66,7 @@ async def upload_image(request:Request,id:str,images: List[UploadFile] = File(..
             async with aiofiles.open(destination_file_path, 'wb') as out_file:
                  while content := await image.read(1024):  
                     await out_file.write(content) 
-            images_url.append(destination_file_path)
+            images_url.append(request.base_url._url+destination_file_path)
 
     collection.update_one({"_id":ObjectId(id)},{"$set":{"images_url":images_url}})
     return {"details":"image uploaded"}
@@ -76,7 +77,8 @@ async def delete_product(id:str):
     product=collection.find_one({"_id":ObjectId(id)})
     # removing images from the server (static folder)
     for image in product["images_url"]:
-        os.remove(str(image))
+        path=re.findall(r'static/.+',image.url)
+        os.remove(str(path[0]))
     if product==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
     collection.delete_one({"_id":ObjectId(id)})
