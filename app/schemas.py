@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,EmailStr
 from typing import List,Union
 from datetime import datetime
 
@@ -26,6 +26,16 @@ class CreateProduct(BaseModel):
     price: float
     quantity: int
     is_available: bool
+
+
+
+# create the user
+class CreateUser(BaseModel):
+    name: str
+    username: str
+    email: EmailStr
+    password: str
+
 
    
 
