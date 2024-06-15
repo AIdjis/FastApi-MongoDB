@@ -1,3 +1,4 @@
+# for fastapi and mongodb
 fastapi ==0.111.0
 pymongo==4.7.2
 
@@ -9,6 +10,8 @@ pytest==8.2.2
 
 # for authentication
 PyJWT==2.8.0
+pyotp==2.9.0
+fastapi-mail==1.4.1
 
 # for hashing
 passlib[bcrypt]==1.7.4
