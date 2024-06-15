@@ -17,7 +17,3 @@ try:
 except Exception as e:
     print(e)
 
-
-#Create database and collection
-db = client.MarketPlace
-collection = db["products"]
