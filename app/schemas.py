@@ -1,4 +1,4 @@
-from pydantic import BaseModel,EmailStr
+from pydantic import BaseModel,EmailStr,StringConstraints,Field
 from typing import List,Union
 from datetime import datetime
 
@@ -34,8 +34,14 @@ class CreateUser(BaseModel):
     name: str
     username: str
     email: EmailStr
-    password: str
+    password: str =Field(...,min_length=8,max_length=64)
 
+class LoginUser(BaseModel):
+    email: EmailStr
+    password: str =Field(...,min_length=8,max_length=64)
 
+class ResponseUser(BaseModel):
+    id:str
+    email:EmailStr
    
 
