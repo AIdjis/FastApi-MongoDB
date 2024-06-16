@@ -1,5 +1,4 @@
 from fastapi import APIRouter,status,HTTPException,Response,UploadFile,File,Form,Request
-from app.database import collection
 from fastapi.responses import JSONResponse
 from app.schemas import ReadProduct,CreateProduct
 from bson import ObjectId
@@ -9,10 +8,14 @@ import aiofiles
 from datetime import datetime
 import os
 import re
+from app.database import client
+
+# create the product collection
+Product=client.MarketPlace.products
 
 
 # this is router for the products
-router = APIRouter(prefix="/Products", tags=["Products"])
+product_router = APIRouter(prefix="/Products", tags=["Products"])
 
 
 def deserialize_product(product)-> dict:
@@ -29,33 +32,33 @@ def deserialize_product(product)-> dict:
 
 
 #  this is a route for getting all products
-@router.get("/",status_code=status.HTTP_200_OK,response_model=List[ReadProduct])
+@product_router.get("/",status_code=status.HTTP_200_OK,response_model=List[ReadProduct])
 async def get_products():
 
-    products = [deserialize_product(product) for product in collection.find()]   
+    products = [deserialize_product(product) for product in Product.find()]   
 
     return products
 
 # this is for getting a single product
-@router.get("/{id}",status_code=status.HTTP_200_OK,response_model=ReadProduct)
+@product_router.get("/{id}",status_code=status.HTTP_200_OK,response_model=ReadProduct)
 async def get_product(id:str):
-    product=collection.find_one({"_id":ObjectId(id)})
+    product=Product.find_one({"_id":ObjectId(id)})
     if product==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
     return deserialize_product(product)
 
 
 # this is for creating a new product
-@router.post("/",status_code=status.HTTP_201_CREATED,response_model=ReadProduct)
+@product_router.post("/",status_code=status.HTTP_201_CREATED,response_model=ReadProduct)
 async def create_product(product:CreateProduct):
     product=dict(product)
     product["create_at"]=datetime.now()
     product["images_url"]=[]
-    new_product=collection.insert_one(product)
-    new_product=collection.find_one({"_id":new_product.inserted_id})
+    new_product=Product.insert_one(product)
+    new_product=Product.find_one({"_id":new_product.inserted_id})
     return deserialize_product(new_product)
 
-@router.post("/upload/{id}",status_code=status.HTTP_201_CREATED)
+@product_router.post("/upload/{id}",status_code=status.HTTP_201_CREATED)
 async def upload_image(request:Request,id:str,images: List[UploadFile] = File(...)):
     images_url=[]
     for image in images:
@@ -68,32 +71,32 @@ async def upload_image(request:Request,id:str,images: List[UploadFile] = File(..
                     await out_file.write(content) 
             images_url.append(request.base_url._url+destination_file_path)
 
-    collection.update_one({"_id":ObjectId(id)},{"$set":{"images_url":images_url}})
+    Product.update_one({"_id":ObjectId(id)},{"$set":{"images_url":images_url}})
     return {"details":"image uploaded"}
 
 # this is for deleting a product
-@router.delete("/{id}",status_code=status.HTTP_204_NO_CONTENT)
+@product_router.delete("/{id}",status_code=status.HTTP_204_NO_CONTENT)
 async def delete_product(id:str):
-    product=collection.find_one({"_id":ObjectId(id)})
+    product=Product.find_one({"_id":ObjectId(id)})
     # removing images from the server (static folder)
     for image in product["images_url"]:
         path=re.findall(r'static/.+',image.url)
         os.remove(str(path[0]))
     if product==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
-    collection.delete_one({"_id":ObjectId(id)})
+    Product.delete_one({"_id":ObjectId(id)})
     return {"details":"Product deleted"}
 
 
 # this is for updating a product
-@router.patch("/{id}",status_code=status.HTTP_202_ACCEPTED)
+@product_router.patch("/{id}",status_code=status.HTTP_202_ACCEPTED)
 async def update_product(id:str,product:CreateProduct):
     # print(dict(product))
-    product_mapped=collection.find_one_and_update({"_id":ObjectId(id)},{"$set":dict(product)})    
+    product_mapped=Product.find_one_and_update({"_id":ObjectId(id)},{"$set":dict(product)})    
     if product_mapped==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
     
-    product_updated=collection.find_one({"_id":ObjectId(id)})
+    product_updated=Product.find_one({"_id":ObjectId(id)})
     return deserialize_product(product_updated)
 
 
