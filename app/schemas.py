@@ -28,7 +28,6 @@ class CreateProduct(BaseModel):
     is_available: bool
 
 
-
 # create the user
 class CreateUser(BaseModel):
     name: str
