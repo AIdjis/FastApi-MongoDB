@@ -43,5 +43,9 @@ class LoginUser(BaseModel):
 class ResponseUser(BaseModel):
     id:str
     email:EmailStr
+
+class Verification(BaseModel):
+    id: str
+    verification_code:str
    
 
