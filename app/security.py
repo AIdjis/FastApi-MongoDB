@@ -2,6 +2,8 @@ from passlib.context import CryptContext
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 import os
 import dotenv
+from jwt import encode
+from datetime import datetime
 
 dotenv.load_dotenv(".env")
 
@@ -45,3 +47,13 @@ async  def send_email(email_conf:str,verifcation_code:str):
         body='your verification code is : '+verifcation_code,
         subtype=MessageType.plain)
     await fm.send_message(message)
+
+
+async def create_access_token(data:dict,expires_time:datetime):
+    data["exp"] = datetime.utcnow() + expires_time
+    data["mode"] = "access"
+    encoded_jwt = encode(algorithm="HS256",key=os.getenv('SECRET_KEY'),payload=data)
+    return encoded_jwt
+
+async def create_refresh_token(data:dict,expires_delta:datetime):
+    pass
