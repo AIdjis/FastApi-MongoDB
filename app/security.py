@@ -48,12 +48,14 @@ async  def send_email(email_conf:str,verifcation_code:str):
         subtype=MessageType.plain)
     await fm.send_message(message)
 
-
-async def create_access_token(data:dict,expires_time:datetime):
+# creating jwt token 
+"""
+in the .env file we have stored the secret key:
+SECRET_KEY = YOUR SECRET KEY
+"""
+async def create_jwt_token(data:dict,expires_time:datetime,mode:str):
     data["exp"] = datetime.utcnow() + expires_time
-    data["mode"] = "access"
+    data["mode"] = mode
     encoded_jwt = encode(algorithm="HS256",key=os.getenv('SECRET_KEY'),payload=data)
     return encoded_jwt
 
-async def create_refresh_token(data:dict,expires_delta:datetime):
-    pass
