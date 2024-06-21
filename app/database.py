@@ -5,6 +5,8 @@ import dotenv
 
 
 #Load environment variables
+# create .env file and store the mongodb url in it
+
 dotenv.load_dotenv()
 url=os.getenv("DB_URL")
 
