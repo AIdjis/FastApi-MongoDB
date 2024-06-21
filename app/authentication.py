@@ -1,7 +1,7 @@
 from fastapi import APIRouter,status,HTTPException,Response,UploadFile,File,Form,Request,Depends,BackgroundTasks
 from app.database import client
 from fastapi.responses import JSONResponse
-from app.schemas import CreateUser,LoginUser,ResponseUser,Verification
+from app.schemas import CreateUser,LoginUser,ResponseUser,Verification,ResendCode
 from bson import ObjectId
 from typing import List
 from datetime import datetime
@@ -111,4 +111,22 @@ async def login(body:LoginUser,response:Response):
 
     return {"id":user_data["id"],"type":"Bearer","access_token":access_token,"refresh_token":refresh_token}
 
+
+# resent the verification code
+@auth_router.post("/resend",status_code=status.HTTP_200_OK)
+async def forgot_password(body:ResendCode,background_tasks:BackgroundTasks):
+    user=User.find_one({"email":body.email})
+    # checking if the user exists
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="user not found")
+    user_data=deserialize_data(user)
+    # generating the verification code
+    otp_base32 = pyotp.random_base32()
+    totp = pyotp.TOTP(otp_base32,interval=600)
+    verification_code=totp.now()
+    User.update_one({"_id":ObjectId(user_data["id"])},{"$set":{"otp_secret":otp_base32}})
+    # sending the verification code via email
+    background_tasks=BackgroundTasks()
+    background_tasks.add_task(send_email,body.email,verification_code)
+    return {"message":"verification code sent to your email"}
 
