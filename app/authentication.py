@@ -38,8 +38,10 @@ async def signup(body:CreateUser,background_tasks:BackgroundTasks):
     body.password=get_password_hash(body.password)
     valid_user=dict(body)
     valid_user["create_at"]=datetime.now()
-    valid_user["is_active"]=False
-    # generating the on opt secret code and sending it via email
+    valid_user["is_active"]=True
+    valid_user["is_verified"]=False
+
+    # generating the on otp code and sending it via email
     otp_base32 = pyotp.random_base32()
     totp = pyotp.TOTP(otp_base32,interval=600)
     verification_code=totp.now()
@@ -65,7 +67,7 @@ async def verify(body:Verification,response:Response):
     if not totp.verify(body.verification_code):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail='please enter a correct verification code')
     
-    User.update_one({"_id":ObjectId(body.id)},{"$set":{"is_active":True}})
+    User.update_one({"_id":ObjectId(body.id)},{"$set":{"is_verified":True}})
 
     # generating access and refresh token and storing them in cookies
     access_token= await create_jwt_token(data={"id":user_data["id"]},expires_time=ACCESS_TOKEN_EXPIRES_IN,mode="access_token")
@@ -91,7 +93,7 @@ async def login(body:LoginUser,response:Response):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="user not found")
     user_data=deserialize_data(user)
     # checking if the user is active or verified
-    if not user_data["is_active"]:
+    if not user_data["is_verified"]:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="user not verified")
     # checking if the password is correct
     if not verify_password(body.password,user_data["password"]):
@@ -129,4 +131,8 @@ async def forgot_password(body:ResendCode,background_tasks:BackgroundTasks):
     background_tasks=BackgroundTasks()
     background_tasks.add_task(send_email,body.email,verification_code)
     return {"message":"verification code sent to your email"}
+
+
+
+
 
