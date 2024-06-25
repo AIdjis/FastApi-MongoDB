@@ -20,7 +20,7 @@ def database():
 @pytest.fixture(scope="function")
 def clear_db(database):
     db=database
-    # Cleanup before running a test
+    # Cleanup after running a test
     for collection in db.list_collection_names():
         db[collection].delete_many({})
     yield db
