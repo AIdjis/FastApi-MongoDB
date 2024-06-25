@@ -1,42 +1,19 @@
 from fastapi.testclient import TestClient
-from pymongo.mongo_client import MongoClient
 from main import app
-import pytest
-import dotenv
-import os
+from .conftest import clear_db
 
 client = TestClient(app)
 
 
-
-dotenv.load_dotenv(".env")
-
-@pytest.fixture(scope="function")
-def setup_db():
-    client = MongoClient(os.getenv("DB_URL"))
-    db = client.MarketPlace
-
-    # Cleanup before running a test
-    yield db
-    
-    # Cleanup after running a test
-    for collection in db.list_collection_names():
-        db[collection].delete_many({})
-
-    client.close()
-
-
-
-
 # test for getting all products
-
-def test_read_item(setup_db):
+def test_read_item(clear_db):
     response = client.get("/Products")
     assert response.status_code == 200
     assert len(response.json()) == 0
-    
 
-def test_create_product(setup_db):
+
+# test for correclty creating a new product
+def test_create_product(clear_db):
     response = client.post("/Products",json={
         "name":"test",
         "description":"test",
