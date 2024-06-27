@@ -46,5 +46,11 @@ class ResponseUser(BaseModel):
 class Verification(BaseModel):
     id: str
     verification_code:str
+
+class ResendCode(BaseModel):
+    email:EmailStr
+
+
+
    
 
