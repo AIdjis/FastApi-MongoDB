@@ -8,10 +8,15 @@ from datetime import datetime
 from .security import get_password_hash,verify_password,send_email,create_jwt_token
 import pyotp
 from datetime import timedelta
+import re
 
 
 # create the user collection
 User=client.MarketPlace.users
+
+# the valid username of the user (letters and numbers only and (. -))
+username_regex = re.compile(r"^(([a-zA-Z0-9]+)|([a-zA-Z0-9]+\.*[a-zA-Z0-9]+)|([a-zA-Z0-9]+-*[a-zA-Z0-9]+))$")
+
 
 auth_router=APIRouter(prefix="/auth",tags=["Authentication"])
 
@@ -34,6 +39,10 @@ async def signup(body:CreateUser,background_tasks:BackgroundTasks):
     # checking if the user email exists
     if User.find_one({"email":body.email}):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="email already exist")
+    if User.find_one({"username":body.username}):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="username already taken")
+    if not username_regex.match(body.username):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="invalid username")
     # hashing the password
     body.password=get_password_hash(body.password)
     valid_user=dict(body)
@@ -131,6 +140,8 @@ async def forgot_password(body:ResendCode,background_tasks:BackgroundTasks):
     background_tasks=BackgroundTasks()
     background_tasks.add_task(send_email,body.email,verification_code)
     return {"message":"verification code sent to your email"}
+
+
 
 
 
