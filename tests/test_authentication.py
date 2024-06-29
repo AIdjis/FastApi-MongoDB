@@ -26,6 +26,12 @@ def test_singup_email_already_exist(clear_db):
     response = client.post("/auth/signup",json=test_user)
     assert response.status_code == 409
     assert response.json() == {"detail": "email already exist"}
+   
+def test_singup_username_already_exist(clear_db):
+    client.post("/auth/signup",json=test_user)
+    response = client.post("/auth/signup",json={"email":"example2@gmail.com","username":"testuser","name":"username","password":"12345678"})
+    assert response.status_code == 409
+    assert response.json() == {"detail": "username already taken"}
 
 def test_signup_user_invalid_email(clear_db):
     response = client.post("/auth/signup",json={"email":"test","username":"test","name":"test","password":"12345678"})
