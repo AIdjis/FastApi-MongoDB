@@ -31,7 +31,7 @@ class CreateProduct(BaseModel):
 # create the user
 class CreateUser(BaseModel):
     name: str
-    username: str
+    username: str=Field(...,max_length=30)
     email: EmailStr
     password: str =Field(...,min_length=8,max_length=64)
 
