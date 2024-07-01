@@ -33,6 +33,12 @@ def test_singup_username_already_exist(clear_db):
     assert response.status_code == 409
     assert response.json() == {"detail": "username already taken"}
 
+# test for invalid username format (only alphabets and numbers  and (.)(-) between the chracters)
+def test_singup_username_invalid(clear_db):
+    response = client.post("/auth/signup",json={"email":"example@gmail.com","username":"test.","name":"username","password":"12345678"})
+    assert response.status_code == 400
+    assert response.json() == {"detail": "invalid username"}
+
 def test_signup_user_invalid_email(clear_db):
     response = client.post("/auth/signup",json={"email":"test","username":"test","name":"test","password":"12345678"})
     assert response.status_code == 422
