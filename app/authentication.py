@@ -1,7 +1,7 @@
 from fastapi import APIRouter,status,HTTPException,Response,UploadFile,File,Form,Request,Depends,BackgroundTasks
 from app.database import client
 from fastapi.responses import JSONResponse
-from app.schemas import CreateUser,LoginUser,ResponseUser,Verification,ResendCode
+from app.schemas import CreateUser,LoginUser,ResponseUser,Verification,ResendCode,ForgotPassword
 from bson import ObjectId
 from typing import List
 from datetime import datetime
@@ -14,7 +14,7 @@ import re
 # create the user collection
 User=client.MarketPlace.users
 
-# the valid username of the user (letters and numbers only and (. -))
+# the valid username of the user (only alphabets and numbers  and (.)(-) between the chracters) 
 username_regex = re.compile(r"^(([a-zA-Z0-9]+)|([a-zA-Z0-9]+\.*[a-zA-Z0-9]+)|([a-zA-Z0-9]+-*[a-zA-Z0-9]+))$")
 
 
@@ -75,6 +75,9 @@ async def verify(body:Verification,response:Response):
     # verifying if the verification code is correct
     if not totp.verify(body.verification_code):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail='please enter a correct verification code')
+    # checking if the user is already verified using for password reset
+    if user_data["is_verified"]:
+        raise HTTPException(status_code=status.HTTP_200_OK,detail="user already verified")
     
     User.update_one({"_id":ObjectId(body.id)},{"$set":{"is_verified":True}})
 
@@ -124,7 +127,7 @@ async def login(body:LoginUser,response:Response):
 
 
 # resent the verification code
-@auth_router.post("/resend",status_code=status.HTTP_200_OK)
+@auth_router.post("/send-code",status_code=status.HTTP_200_OK)
 async def forgot_password(body:ResendCode,background_tasks:BackgroundTasks):
     user=User.find_one({"email":body.email})
     # checking if the user exists
@@ -140,6 +143,33 @@ async def forgot_password(body:ResendCode,background_tasks:BackgroundTasks):
     background_tasks=BackgroundTasks()
     background_tasks.add_task(send_email,body.email,verification_code)
     return {"message":"verification code sent to your email"}
+
+
+@auth_router.patch("/rest-password",status_code=status.HTTP_200_OK)
+async def reset_password(response:Response,body:ForgotPassword):
+    user=User.find_one({"email":body.email})
+    # checking if the user exists
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="user not found")
+    # updating the user password
+    body.password=get_password_hash(body.password)
+    user_mapped=User.update_one({"email":body.email},{"$set":{"password":body.password}})
+    user_data=deserialize_data(user_mapped)
+
+    # generating access and refresh token and storing them in cookies
+    access_token= await create_jwt_token(data={"id":user_data["id"]},expires_time=ACCESS_TOKEN_EXPIRES_IN,mode="access_token")  
+    refresh_token= await create_jwt_token(data={"id":user_data["id"]},expires_time=REFRESH_TOKEN_EXPIRES_IN,mode="refresh_token")
+    response.set_cookie(key="access_token",value=access_token,expires=ACCESS_TOKEN_EXPIRES_IN,httponly=True,
+                       domain=None,max_age=ACCESS_TOKEN_EXPIRES_IN,secure=False,samesite="lax")
+    
+    response.set_cookie(key="refresh_token",value=refresh_token,expires=REFRESH_TOKEN_EXPIRES_IN,httponly=True, domain=None,
+                        max_age=REFRESH_TOKEN_EXPIRES_IN,secure=False,samesite="lax")
+    
+    response.set_cookie(key="logged_in",value="True",expires=ACCESS_TOKEN_EXPIRES_IN,domain=None,
+                       max_age=ACCESS_TOKEN_EXPIRES_IN ,secure=False,httponly=False,samesite="lax")
+
+    return {"id":user_data["id"],"type":"Bearer","access_token":access_token,"refresh_token":refresh_token}
+
 
 
 
