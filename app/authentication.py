@@ -145,6 +145,7 @@ async def forgot_password(body:ResendCode,background_tasks:BackgroundTasks):
     return {"message":"verification code sent to your email"}
 
 
+# resetting the password user 
 @auth_router.patch("/forgot-password",status_code=status.HTTP_200_OK)
 async def reset_password(response:Response,body:ForgotPassword):
     user=User.find_one({"email":body.email})

@@ -32,7 +32,7 @@ class CreateProduct(BaseModel):
 class CreateUser(BaseModel):
     name: str
     username: str=Field(...,max_length=30)
-    email: EmailStr
+    email: EmailStr=Field(...,max_length=50)
     password: str =Field(...,min_length=8,max_length=64)
 
 class LoginUser(BaseModel):
@@ -41,14 +41,18 @@ class LoginUser(BaseModel):
 
 class ResponseUser(BaseModel):
     id:str
-    email:EmailStr
+    email:EmailStr=Field(...,max_length=50)
 
 class Verification(BaseModel):
     id: str
     verification_code:str
 
 class ResendCode(BaseModel):
-    email:EmailStr
+    email:EmailStr=Field(...,max_length=50)
+
+class ForgotPassword(BaseModel):
+    email:EmailStr=Field(...,max_length=50)
+    password:str =Field(...,min_length=8,max_length=64)
 
 
 
