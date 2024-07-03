@@ -1,13 +1,17 @@
 from passlib.context import CryptContext
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
+from fastapi import Depends,HTTPException,status
+from jwt.exceptions import PyJWTError,InvalidTokenError
+from fastapi.security import OAuth2PasswordBearer
 import os
 import dotenv
-from jwt import encode
+from jwt import encode,decode
 from datetime import datetime
 
 dotenv.load_dotenv(".env")
 
 password_context = CryptContext(schemes=["bcrypt"],deprecated="auto")
+oauth_2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
 
 """
@@ -59,3 +63,18 @@ async def create_jwt_token(data:dict,expires_time:datetime,mode:str):
     encoded_jwt = encode(algorithm="HS256",key=os.getenv('SECRET_KEY'),payload=data)
     return encoded_jwt
 
+async def verify_jwt_refresh_token(token:str=Depends(oauth_2_scheme))->dict:
+    try:
+        payload=decode(token,os.getenv('SECRET_KEY'),algorithms=["HS256"])
+        if "id" not in payload:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
+        if datetime.fromtimestamp(payload["exp"])<datetime.now():
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="refresh token expired")
+        if payload["mode"] != "refresh_token":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
+        return payload
+    except PyJWTError as e:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
+
+ 
+       
