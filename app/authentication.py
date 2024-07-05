@@ -5,7 +5,7 @@ from app.schemas import CreateUser,LoginUser,ResponseUser,Verification,ResendCod
 from bson import ObjectId
 from typing import List
 from datetime import datetime
-from .security import get_password_hash,verify_password,send_email,create_jwt_token
+from .security import get_password_hash,verify_password,send_email,create_jwt_token,verify_jwt_refresh_token
 import pyotp
 from datetime import timedelta
 import re
@@ -30,6 +30,7 @@ def deserialize_data(user):
             "password":user["password"],
             "username":user["username"],
             "is_active":user["is_active"],
+            "is_verified":user["is_verified"],
             "otp_secret":user["otp_secret"],
             "email":user["email"]}
 
@@ -77,7 +78,7 @@ async def verify(body:Verification,response:Response):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail='please enter a correct verification code')
     # checking if the user is already verified using for password reset
     if user_data["is_verified"]:
-        raise HTTPException(status_code=status.HTTP_200_OK,detail="user already verified")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="user already verified")
     
     User.update_one({"_id":ObjectId(body.id)},{"$set":{"is_verified":True}})
 
@@ -125,7 +126,6 @@ async def login(body:LoginUser,response:Response):
 
     return {"id":user_data["id"],"type":"Bearer","access_token":access_token,"refresh_token":refresh_token}
 
-
 # resent the verification code
 @auth_router.post("/send-code",status_code=status.HTTP_200_OK)
 async def forgot_password(body:ResendCode,background_tasks:BackgroundTasks):
@@ -143,7 +143,6 @@ async def forgot_password(body:ResendCode,background_tasks:BackgroundTasks):
     background_tasks=BackgroundTasks()
     background_tasks.add_task(send_email,body.email,verification_code)
     return {"message":"verification code sent to your email"}
-
 
 # resetting the password user 
 @auth_router.patch("/forgot-password",status_code=status.HTTP_200_OK)
@@ -170,6 +169,33 @@ async def reset_password(response:Response,body:ForgotPassword):
                        max_age=ACCESS_TOKEN_EXPIRES_IN ,secure=False,httponly=False,samesite="lax")
 
     return {"id":user_data["id"],"type":"Bearer","access_token":access_token,"refresh_token":refresh_token}
+
+# refreshing the access token via refresh token
+@auth_router.get("/refresh-token",status_code=status.HTTP_200_OK)
+async def refresh_token(response:Response,Authorize:dict=Depends(verify_jwt_refresh_token)):
+
+    user= User.find_one({"_id":ObjectId(Authorize["id"])})
+
+    # checking if the user exists
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail='The user belonging to this token no logger exist')
+    user_data=deserialize_data(user)
+    access_token= await create_jwt_token(data={"id":user_data["id"]},expires_time=ACCESS_TOKEN_EXPIRES_IN,mode="access_token")  
+    refresh_token= await create_jwt_token(data={"id":user_data["id"]},expires_time=REFRESH_TOKEN_EXPIRES_IN,mode="refresh_token")
+
+    response.set_cookie(key="access_token",value=access_token,expires=ACCESS_TOKEN_EXPIRES_IN,httponly=True,
+                       domain=None,max_age=ACCESS_TOKEN_EXPIRES_IN,secure=False,samesite="lax")
+    
+    response.set_cookie(key="refresh_token",value=refresh_token,expires=REFRESH_TOKEN_EXPIRES_IN,httponly=True, domain=None,
+                        max_age=REFRESH_TOKEN_EXPIRES_IN,secure=False,samesite="lax")
+
+    response.set_cookie(key="logged_in",value="True",expires=ACCESS_TOKEN_EXPIRES_IN,domain=None,
+                       max_age=ACCESS_TOKEN_EXPIRES_IN ,secure=False,httponly=False,samesite="lax")
+    
+    return {"type":"Bearer","access_token":access_token,"refresh_token":refresh_token}
+    
+
 
 
 
