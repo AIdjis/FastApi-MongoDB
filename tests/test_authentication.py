@@ -39,6 +39,7 @@ def test_singup_username_invalid(clear_db):
     assert response.status_code == 400
     assert response.json() == {"detail": "invalid username"}
 
+# test for invalid email
 def test_signup_user_invalid_email(clear_db):
     response = client.post("/auth/signup",json={"email":"test","username":"test","name":"test","password":"12345678"})
     assert response.status_code == 422
@@ -62,4 +63,9 @@ def test_signup_user_invalid_email(clear_db):
             },
         ],
     }
+
+def test_login_not_exist(clear_db):
+    response = client.post("/auth/login",json={"email":"example@gmail.com","password":"12345678"})
+    assert response.status_code == 404
+    assert response.json() == {"detail": "user not found"}
    
