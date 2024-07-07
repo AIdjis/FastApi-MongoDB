@@ -3,7 +3,6 @@ from app.database import client
 from fastapi.responses import JSONResponse
 from app.schemas import CreateUser,LoginUser,ResponseUser,Verification,ResendCode,ForgotPassword
 from bson import ObjectId
-from typing import List
 from datetime import datetime
 from .security import get_password_hash,verify_password,send_email,create_jwt_token,verify_jwt_refresh_token
 import pyotp
