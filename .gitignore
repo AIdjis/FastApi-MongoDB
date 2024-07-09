@@ -9,3 +9,6 @@ __pycache__/
 
 # Ignore static files
 static/
+
+# Ignore all test files
+*.pytest_cache/
