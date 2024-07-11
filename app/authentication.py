@@ -77,7 +77,7 @@ async def verify(body:Verification,response:Response):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail='please enter a correct verification code')
     # checking if the user is already verified using for password reset
     if user_data["is_verified"]:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="user already verified")
+        raise JSONResponse(status_code=status.HTTP_200_OK,detail="user already verified")
     
     User.update_one({"_id":ObjectId(body.id)},{"$set":{"is_verified":True}})
 
