@@ -1,6 +1,8 @@
 from fastapi.testclient import TestClient
 from .conftest import clear_db
 from main import app
+import pyotp
+from app.authentication import User
 
 
 client = TestClient(app)
@@ -13,7 +15,15 @@ test_user = {
     "password": "12345678",
 }
 
-client = TestClient(app)
+def deserialize_user(user):
+    return {"id":str(user["_id"]),
+            "name":user["name"],
+            "password":user["password"],
+            "username":user["username"],
+            "is_active":user["is_active"],
+            "is_verified":user["is_verified"],
+            "otp_secret":user["otp_secret"],
+            "email":user["email"]}
 
 def test_signup(clear_db):
     response = client.post("/auth/signup",json=test_user)
@@ -63,6 +73,22 @@ def test_signup_user_invalid_email(clear_db):
             },
         ],
     }
+
+def test_verify_email(clear_db):
+    register_response = client.post("/auth/signup",json=test_user)
+    user = User.find_one({"email":test_user["email"]})
+    user = deserialize_user(user)
+    verification_code = pyotp.TOTP(user["otp_secret"],interval=600).now()
+    response = client.post("/auth/verify",json={"id":register_response.json()["id"],"verification_code":verification_code})
+    assert response.status_code == 200
+    assert response.json()["id"] == register_response.json()["id"]
+
+def test_verify_email_invalid_code(clear_db):
+    register_response =client.post("/auth/signup",json=test_user)
+    response = client.post("/auth/verify",json={"id":register_response.json()["id"],"verification_code":"12345"})
+    assert response.status_code == 400
+    assert response.json() == {"detail": "please enter a correct verification code"}   
+
 
 def test_login_not_exist(clear_db):
     response = client.post("/auth/login",json={"email":"example@gmail.com","password":"12345678"})
