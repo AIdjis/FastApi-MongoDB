@@ -64,6 +64,7 @@ async def create_jwt_token(data:dict,expires_time:datetime,mode:str):
     return encoded_jwt
 
 async def verify_jwt_refresh_token(token:str=Depends(oauth_2_scheme))->dict:
+    # verifying if the refresh token is valid
     try:
         payload=decode(token,os.getenv('SECRET_KEY'),algorithms=["HS256"])
         if "id" not in payload:
@@ -71,6 +72,21 @@ async def verify_jwt_refresh_token(token:str=Depends(oauth_2_scheme))->dict:
         if datetime.fromtimestamp(payload["exp"])<datetime.now():
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="refresh token expired")
         if payload["mode"] != "refresh_token":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
+        return payload
+    except PyJWTError as e:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
+
+
+async def jwt_required(token:str=Depends(oauth_2_scheme))->dict:
+    # verifying if the access token is valid
+    try:
+        payload=decode(token,os.getenv('SECRET_KEY'),algorithms=["HS256"])
+        if "id" not in payload:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
+        if datetime.fromtimestamp(payload["exp"])<datetime.now():
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="token expired")
+        if payload["mode"] != "access_token":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
         return payload
     except PyJWTError as e:
