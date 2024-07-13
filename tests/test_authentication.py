@@ -94,4 +94,10 @@ def test_login_not_exist(clear_db):
     response = client.post("/auth/login",json={"email":"example@gmail.com","password":"12345678"})
     assert response.status_code == 404
     assert response.json() == {"detail": "user not found"}
-   
+
+def test_login_unverified_user(clear_db):
+    client.post("/auth/signup",json=test_user)
+    response = client.post("/auth/login",json={"email":"example@gmail.com","password":"12345678"})
+    assert response.status_code == 401
+    assert response.json() == {"detail": "user not verified"}
+
