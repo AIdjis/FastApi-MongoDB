@@ -2,8 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from app import product
-from app import authentication
+from app import product,profile,authentication
 import os 
 import dotenv
 
@@ -14,6 +13,7 @@ app = FastAPI()
 
 app.include_router(product.product_router)
 app.include_router(authentication.auth_router)
+app.include_router(profile.profile_router)
 
 # enable the  cors 
 app.add_middleware(
