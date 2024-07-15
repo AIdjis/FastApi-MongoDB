@@ -28,7 +28,7 @@ class CreateProduct(BaseModel):
     is_available: bool
 
 
-# create the user
+# user authentication shemas
 class CreateUser(BaseModel):
     name: str
     username: str=Field(...,max_length=30)
@@ -53,6 +53,14 @@ class ResendCode(BaseModel):
 class ForgotPassword(BaseModel):
     email:EmailStr=Field(...,max_length=50)
     password:str =Field(...,min_length=8,max_length=64)
+
+# user profile schemas
+
+class UserProfile(BaseModel):
+    name:str
+    username:str
+    email:EmailStr=Field(...,max_length=50)
+    created_at:Union[datetime,None]
 
 
 
