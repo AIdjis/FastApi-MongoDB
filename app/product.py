@@ -1,11 +1,11 @@
-from fastapi import APIRouter,status,HTTPException,Response,UploadFile,File,Form,Request
+from fastapi import APIRouter,status,HTTPException,Response,UploadFile,File,Form,Request,Depends
 from fastapi.responses import JSONResponse
 from app.schemas import ReadProduct,CreateProduct
 from bson import ObjectId
 from typing import List
 import secrets
 import aiofiles
-from datetime import datetime
+from datetime import date
 import os
 import re
 from app.database import client
@@ -52,7 +52,7 @@ async def get_product(id:str):
 @product_router.post("/",status_code=status.HTTP_201_CREATED,response_model=ReadProduct)
 async def create_product(product:CreateProduct):
     product=dict(product)
-    product["create_at"]=datetime.now()
+    product["created_at"]=date.today()
     product["images_url"]=[]
     new_product=Product.insert_one(product)
     new_product=Product.find_one({"_id":new_product.inserted_id})
