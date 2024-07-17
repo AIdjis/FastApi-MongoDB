@@ -1,7 +1,7 @@
 from passlib.context import CryptContext
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from fastapi import Depends,HTTPException,status
-from jwt.exceptions import PyJWTError,InvalidTokenError
+from jwt.exceptions import PyJWTError,ExpiredSignatureError
 from fastapi.security import OAuth2PasswordBearer
 import os
 import dotenv
@@ -69,11 +69,11 @@ async def verify_jwt_refresh_token(token:str=Depends(oauth_2_scheme))->dict:
         payload=decode(token,os.getenv('SECRET_KEY'),algorithms=["HS256"])
         if "id" not in payload:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
-        if datetime.fromtimestamp(payload["exp"])<datetime.now():
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="refresh token expired")
         if payload["mode"] != "refresh_token":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
         return payload
+    except ExpiredSignatureError:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="token expired")
     except PyJWTError as e:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
 
@@ -84,11 +84,11 @@ async def jwt_required(token:str=Depends(oauth_2_scheme))->dict:
         payload=decode(token,os.getenv('SECRET_KEY'),algorithms=["HS256"])
         if "id" not in payload:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
-        if datetime.fromtimestamp(payload["exp"])<datetime.now():
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="token expired")
         if payload["mode"] != "access_token":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
         return payload
+    except ExpiredSignatureError:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="token expired")
     except PyJWTError as e:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
 
