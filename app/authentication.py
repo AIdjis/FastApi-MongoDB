@@ -3,7 +3,7 @@ from app.database import client
 from fastapi.responses import JSONResponse
 from app.schemas import CreateUser,LoginUser,ResponseUser,Verification,ResendCode,ForgotPassword
 from bson import ObjectId
-from datetime import datetime
+from datetime import date
 from .security import get_password_hash,verify_password,send_email,create_jwt_token,verify_jwt_refresh_token
 import pyotp
 from datetime import timedelta
@@ -46,7 +46,7 @@ async def signup(body:CreateUser,background_tasks:BackgroundTasks):
     # hashing the password
     body.password=get_password_hash(body.password)
     valid_user=dict(body)
-    valid_user["create_at"]=datetime.now()
+    valid_user["created_at"]=date.today()
     valid_user["is_active"]=True
     valid_user["is_verified"]=False
 
@@ -127,7 +127,7 @@ async def login(body:LoginUser,response:Response):
 
 # resent the verification code
 @auth_router.post("/send-code",status_code=status.HTTP_200_OK)
-async def forgot_password(body:ResendCode,background_tasks:BackgroundTasks):
+async def resend_code(body:ResendCode,background_tasks:BackgroundTasks):
     user=User.find_one({"email":body.email})
     # checking if the user exists
     if not user:
