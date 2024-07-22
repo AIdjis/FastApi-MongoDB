@@ -5,7 +5,7 @@ from bson import ObjectId
 from typing import List
 import secrets
 import aiofiles
-from datetime import date
+from datetime import datetime
 import os
 import re
 from app.database import client
@@ -27,7 +27,7 @@ def deserialize_product(product)-> dict:
         'quantity':product["quantity"],
         'is_available':product["is_available"],
         'images_url':product["images_url"],
-        'create_at':product["create_at"]
+        'create_at':product["created_at"]
         }
 
 
@@ -52,7 +52,7 @@ async def get_product(id:str):
 @product_router.post("/",status_code=status.HTTP_201_CREATED,response_model=ReadProduct)
 async def create_product(product:CreateProduct):
     product=dict(product)
-    product["created_at"]=date.today()
+    product["created_at"]=datetime.today()
     product["images_url"]=[]
     new_product=Product.insert_one(product)
     new_product=Product.find_one({"_id":new_product.inserted_id})
