@@ -101,3 +101,15 @@ def test_login_unverified_user(clear_db):
     assert response.status_code == 401
     assert response.json() == {"detail": "user not verified"}
 
+def test_login_invalid_password(clear_db):
+    # register a new user
+    register_response = client.post("/auth/signup",json=test_user)
+    user = User.find_one({"email":test_user["email"]})
+    user = deserialize_user(user)
+    verification_code = pyotp.TOTP(user["otp_secret"],interval=600).now()
+    # verify the user
+    client.post("/auth/verify",json={"id":register_response.json()["id"],"verification_code":verification_code})
+    # login with invalid password
+    response = client.post("/auth/login",json={"email":"example@gmail.com","password":"123456789"})
+    assert response.status_code == 400
+    assert response.json() == {"detail": "invalid password"}
