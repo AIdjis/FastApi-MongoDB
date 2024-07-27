@@ -9,6 +9,7 @@ from datetime import datetime
 import os
 import re
 from app.database import client
+from app.security import jwt_required
 
 # create the product collection
 Product=client.MarketPlace.products
@@ -50,16 +51,22 @@ async def get_product(id:str):
 
 # this is for creating a new product
 @product_router.post("/",status_code=status.HTTP_201_CREATED,response_model=ReadProduct)
-async def create_product(product:CreateProduct):
+async def create_product(product:CreateProduct,Authorize:dict=Depends(jwt_required)):
     product=dict(product)
     product["created_at"]=datetime.today()
     product["images_url"]=[]
+    product["user"]=Authorize["id"]
     new_product=Product.insert_one(product)
     new_product=Product.find_one({"_id":new_product.inserted_id})
     return deserialize_product(new_product)
 
 @product_router.post("/upload/{id}",status_code=status.HTTP_201_CREATED)
-async def upload_image(request:Request,id:str,images: List[UploadFile] = File(...)):
+async def upload_image(request:Request,id:str,images: List[UploadFile] = File(...),Authorize:dict=Depends(jwt_required)):
+    product = Product.find_one({"_id":ObjectId(id)})
+    if product==None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
+    if product["user"]!=Authorize["id"]:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Unauthorized access")
     images_url=[]
     for image in images:
         if image.content_type not in ['image/png','image/jpeg','image/jpg']:
@@ -71,33 +78,41 @@ async def upload_image(request:Request,id:str,images: List[UploadFile] = File(..
                     await out_file.write(content) 
             images_url.append(request.base_url._url+destination_file_path)
 
-    Product.update_one({"_id":ObjectId(id)},{"$set":{"images_url":images_url}})
-    return {"details":"image uploaded"}
+    product.update_one({"$set":{"images_url":images_url}})
+    return JSONResponse(status_code=status.HTTP_201_CREATED,detail="images uploaded")
 
-# this is for deleting a product
+# deleting a product from the database
 @product_router.delete("/{id}",status_code=status.HTTP_204_NO_CONTENT)
-async def delete_product(id:str):
+async def delete_product(id:str,Authorize:dict=Depends(jwt_required)):
+
     product=Product.find_one({"_id":ObjectId(id)})
+    if product==None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
+    if product["user"]!=Authorize["id"]:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Unauthorized access")
     # removing images from the server (static folder)
     for image in product["images_url"]:
         path=re.findall(r'static/.+',image.url)
         os.remove(str(path[0]))
-    if product==None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
+
     Product.delete_one({"_id":ObjectId(id)})
     return {"details":"Product deleted"}
 
 
-# this is for updating a product
+#  updating a single product 
 @product_router.patch("/{id}",status_code=status.HTTP_202_ACCEPTED)
-async def update_product(id:str,product:CreateProduct):
-    # print(dict(product))
-    product_mapped=Product.find_one_and_update({"_id":ObjectId(id)},{"$set":dict(product)})    
-    if product_mapped==None:
+async def update_product(id:str,data:CreateProduct,Authorize:dict=Depends(jwt_required)):
+
+    product=Product.find_one({"_id":ObjectId(id)})
+    if product==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
+    if product["user"]!=Authorize["id"]:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Unauthorized access")
+    product.update_one({"$set":dict(data)})
+    # product=Product.find_one_and_update({"_id":ObjectId(id)},{"$set":dict(data)})    
     
-    product_updated=Product.find_one({"_id":ObjectId(id)})
-    return deserialize_product(product_updated)
+    # product_updated=Product.find_one({"_id":ObjectId(id)})
+    return deserialize_product(product)
 
 
 
