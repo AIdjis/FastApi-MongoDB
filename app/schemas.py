@@ -4,28 +4,30 @@ from datetime import datetime
 
 
 
-# read the product
+# product shemas
 class ReadProduct(BaseModel):
     id:str
     name: str
     description: str
     price: float
-    quantity: int
+    currency: str =Field(max_length=3)
+    category: str
+    location: str
+    condition: str
     is_available: bool
     images_url: List[str]=[]
     create_at: Union[datetime, None]
-    
 
 
-
-
-# create the product
 class CreateProduct(BaseModel):
     name: str
     description: str
-    price: float
-    quantity: int
-    is_available: bool
+    price: float =Field(...,gt=0)
+    category: str
+    location: str
+    condition: str
+    currency: str =Field(default="USD",max_length=3)
+
 
 
 # user authentication shemas
