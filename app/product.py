@@ -16,7 +16,7 @@ Product=client.MarketPlace.products
 
 
 # this is router for the products
-product_router = APIRouter(prefix="/Products", tags=["Products"])
+product_router = APIRouter(prefix="/product", tags=["Products"])
 
 
 def deserialize_product(product)-> dict:
@@ -25,10 +25,13 @@ def deserialize_product(product)-> dict:
         'name':product["name"],
         'description':product["description"],
         'price':product["price"],
-        'quantity':product["quantity"],
         'is_available':product["is_available"],
         'images_url':product["images_url"],
-        'create_at':product["created_at"]
+        'create_at':product["created_at"],
+        'category':product["category"],
+        'location':product["location"],
+        'condition':product["condition"],
+        'currency':product["currency"],
         }
 
 
@@ -54,6 +57,7 @@ async def get_product(id:str):
 async def create_product(product:CreateProduct,Authorize:dict=Depends(jwt_required)):
     product=dict(product)
     product["created_at"]=datetime.today()
+    product["is_available"]=True
     product["images_url"]=[]
     product["user"]=Authorize["id"]
     new_product=Product.insert_one(product)
@@ -79,7 +83,7 @@ async def upload_image(request:Request,id:str,images: List[UploadFile] = File(..
             images_url.append(request.base_url._url+destination_file_path)
 
     product.update_one({"$set":{"images_url":images_url}})
-    return JSONResponse(status_code=status.HTTP_201_CREATED,detail="images uploaded")
+    return JSONResponse(content={"detail":"images uploaded"})
 
 # deleting a product from the database
 @product_router.delete("/{id}",status_code=status.HTTP_204_NO_CONTENT)
@@ -96,7 +100,7 @@ async def delete_product(id:str,Authorize:dict=Depends(jwt_required)):
         os.remove(str(path[0]))
 
     Product.delete_one({"_id":ObjectId(id)})
-    return {"details":"Product deleted"}
+    return JSONResponse(content={"detail":"product deleted"})
 
 
 #  updating a single product 
