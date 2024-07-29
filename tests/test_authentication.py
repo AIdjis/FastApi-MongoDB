@@ -114,7 +114,7 @@ def test_login_invalid_password(clear_db):
     assert response.status_code == 400
     assert response.json() == {"detail": "invalid password"}
 
-# successful login with valid credentials
+# test login with valid credentials
 def test_login(clear_db):
     register_response = client.post("/auth/signup",json=test_user)
     user = User.find_one({"email":test_user["email"]})
@@ -131,3 +131,15 @@ def test_resond_code_user_not_exist(clear_db):
     assert response.status_code == 404
     assert response.json() == {"detail": "user not found"}
 
+def test_refresh_token(clear_db):
+    register_response = client.post("/auth/signup",json=test_user)
+    user = User.find_one({"email":test_user["email"]})
+    user = deserialize_user(user)
+    verification_code = pyotp.TOTP(user["otp_secret"],interval=600).now()
+    client.post("/auth/verify",json={"id":register_response.json()["id"],"verification_code":verification_code})
+    response = client.post("/auth/login",json={"email":"example@gmail.com","password":"12345678"})
+    assert response.status_code == 200
+    assert response.json()["id"] == register_response.json()["id"]
+    refresh_token = response.json()["refresh_token"]
+    response = client.get("/auth/refresh-token",headers={"Authorization":f"Bearer {refresh_token}"})
+    assert response.status_code == 200
