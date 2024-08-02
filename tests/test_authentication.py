@@ -143,3 +143,9 @@ def test_refresh_token(clear_db):
     refresh_token = response.json()["refresh_token"]
     response = client.get("/auth/refresh-token",headers={"Authorization":f"Bearer {refresh_token}"})
     assert response.status_code == 200
+
+def test_invalid_refresh_token(clear_db):
+    invalid_refresh_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ"
+    response = client.get("/auth/refresh-token",headers={"Authorization":f"Bearer {invalid_refresh_token}"})
+    assert response.status_code == 401
+    assert response.json() == {"detail": "invalid token"}
