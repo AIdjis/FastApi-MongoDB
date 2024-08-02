@@ -1,7 +1,7 @@
 from passlib.context import CryptContext
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
-from fastapi import Depends,HTTPException,status
-from jwt.exceptions import PyJWTError,ExpiredSignatureError
+from fastapi import Depends,HTTPException,status,Request
+from jwt.exceptions import PyJWTError,ExpiredSignatureError,DecodeError
 from fastapi.security import OAuth2PasswordBearer
 import os
 import dotenv
@@ -63,8 +63,9 @@ async def create_jwt_token(data:dict,expires_time:datetime,mode:str):
     encoded_jwt = encode(algorithm="HS256",key=os.getenv('SECRET_KEY'),payload=data)
     return encoded_jwt
 
-async def verify_jwt_refresh_token(token:str=Depends(oauth_2_scheme))->dict:
-    # verifying if the refresh token is valid
+async def jwt_refresh_token_required(request:Request,token:str=Depends(oauth_2_scheme))->dict:
+
+     # verifying if the refresh token is valid
     try:
         payload=decode(token,os.getenv('SECRET_KEY'),algorithms=["HS256"])
         if "id" not in payload:
@@ -78,7 +79,8 @@ async def verify_jwt_refresh_token(token:str=Depends(oauth_2_scheme))->dict:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="invalid token")
 
 
-async def jwt_required(token:str=Depends(oauth_2_scheme))->dict:
+async def jwt_required(request:Request,token:str=Depends(oauth_2_scheme))->dict:
+   
     # verifying if the access token is valid
     try:
         payload=decode(token,os.getenv('SECRET_KEY'),algorithms=["HS256"])

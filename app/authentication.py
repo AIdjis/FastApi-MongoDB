@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from app.schemas import CreateUser,LoginUser,ResponseUser,Verification,ResendCode,ForgotPassword
 from bson import ObjectId
 from datetime import datetime
-from .security import get_password_hash,verify_password,send_email,create_jwt_token,verify_jwt_refresh_token
+from .security import get_password_hash,verify_password,send_email,create_jwt_token,jwt_refresh_token_required
 import pyotp
 from datetime import timedelta
 import re
@@ -139,7 +139,6 @@ async def resend_code(body:ResendCode,background_tasks:BackgroundTasks):
     verification_code=totp.now()
     User.update_one({"_id":ObjectId(user_data["id"])},{"$set":{"otp_secret":otp_base32}})
     # sending the verification code via email
-    background_tasks=BackgroundTasks()
     background_tasks.add_task(send_email,body.email,verification_code)
     return {"message":"verification code sent to your email"}
 
@@ -171,7 +170,7 @@ async def reset_password(response:Response,body:ForgotPassword):
 
 # refreshing the access token via refresh token
 @auth_router.get("/refresh-token",status_code=status.HTTP_200_OK)
-async def refresh_token(response:Response,Authorize:dict=Depends(verify_jwt_refresh_token)):
+async def refresh_token(response:Response,Authorize:dict=Depends(jwt_refresh_token_required)):
 
     user= User.find_one({"_id":ObjectId(Authorize["id"])})
 
