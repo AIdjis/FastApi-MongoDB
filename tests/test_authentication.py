@@ -29,7 +29,6 @@ def test_signup(clear_db):
     response = client.post("/auth/signup",json=test_user)
     assert response.status_code == 201
     assert response.json()["email"] == test_user["email"]
-   
 
 def test_singup_email_already_exist(clear_db):
     client.post("/auth/signup",json=test_user)
@@ -149,3 +148,8 @@ def test_invalid_refresh_token(clear_db):
     response = client.get("/auth/refresh-token",headers={"Authorization":f"Bearer {invalid_refresh_token}"})
     assert response.status_code == 401
     assert response.json() == {"detail": "invalid token"}
+
+def test_resond_code_user_not_exist(clear_db):
+    response = client.post("/auth/send-code",json={"email":"example@gmail.com"})
+    assert response.status_code == 404
+    assert response.json() == {"detail": "user not found"}
