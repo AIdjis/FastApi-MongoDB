@@ -4,24 +4,20 @@ import dotenv
 import os
 
 dotenv.load_dotenv(".env")
+   
 
 @pytest.fixture(scope="function")
-def database():
+def clear_db():
     client = MongoClient(os.getenv("DB_URL"))
     db = client.MarketPlace
-
-   
-    yield db
-    
-    # close the connection
-    client.close()
-    
-
-@pytest.fixture(scope="function")
-def clear_db(database):
-    db=database
     # Cleanup after running a test
+
+
+    yield db
+
     for collection in db.list_collection_names():
         db[collection].delete_many({})
-    yield db
+
+    client.close()
+    
     
