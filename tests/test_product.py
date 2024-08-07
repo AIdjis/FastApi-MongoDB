@@ -15,7 +15,7 @@ test_user = {
 }
 
 # function to deserialize the user data from the database
-def deserialize_user(user):
+def deserialize_user(user)-> dict:
     return {"id":str(user["_id"]),
             "name":user["name"],
             "password":user["password"],
@@ -39,10 +39,28 @@ test_product = {
 
 
 # test for getting all products
-def test_read_item(clear_db):
+def test_read_items(clear_db):
     response = client.get("/product")
     assert response.status_code == 200
     assert len(response.json()) == 0
+
+def test_read_single_item(clear_db):
+    # first create a new user and verify it
+    register_response = client.post("/auth/signup",json=test_user)
+    user = User.find_one({"email":test_user["email"]})
+    user = deserialize_user(user)
+    verification_code = pyotp.TOTP(user["otp_secret"],interval=600).now()
+    verify_response = client.post("/auth/verify",json={"id":register_response.json()["id"],"verification_code":verification_code})
+    # then create a new product by the new user
+    product_response = client.post("/product",json=test_product,headers={"Authorization":f"Bearer {verify_response.json()['access_token']}"})
+    response = client.get("/product/"+product_response.json()["id"])
+    assert response.status_code == 200
+    assert response.json()["name"] == test_product["name"]
+
+def test_read_non_existing_item(clear_db):
+    response = client.get("/product/78")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Product not found"}
 
 # test for correclty creating a new product
 def test_create_product(clear_db):
@@ -51,8 +69,8 @@ def test_create_product(clear_db):
     user = User.find_one({"email":test_user["email"]})
     user = deserialize_user(user)
     verification_code = pyotp.TOTP(user["otp_secret"],interval=600).now()
-    response = client.post("/auth/verify",json={"id":register_response.json()["id"],"verification_code":verification_code})
+    verify_response = client.post("/auth/verify",json={"id":register_response.json()["id"],"verification_code":verification_code})
     # then create a new product by the new user
-    response = client.post("/product",json=test_product,headers={"Authorization":f"Bearer {response.json()['access_token']}"})
+    response = client.post("/product",json=test_product,headers={"Authorization":f"Bearer {verify_response.json()['access_token']}"})
     assert response.status_code == 201
     assert response.json()["name"] == test_product["name"]
