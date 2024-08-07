@@ -1,7 +1,8 @@
 from fastapi import APIRouter,status,HTTPException,Response,UploadFile,File,Form,Request,Depends
 from fastapi.responses import JSONResponse
 from app.schemas import ReadProduct,CreateProduct
-from bson import ObjectId
+from bson import ObjectId,errors
+import uuid
 from typing import List
 import secrets
 import aiofiles
@@ -34,6 +35,19 @@ def deserialize_product(product)-> dict:
         'currency':product["currency"],
         }
 
+def remove_images(images_urls:List[str]):
+    for image in images_urls:
+        path=re.findall(r'static/.+',image.url)
+        os.remove(str(path[0]))
+
+def is_valid_objectid(object_id : str)->bool:
+    try:
+        # Check if object_id can be converted to an ObjectId
+        ObjectId(object_id)
+        return True
+    except errors.InvalidId:
+        return False
+
 
 #  this is a route for getting all products
 @product_router.get("/",status_code=status.HTTP_200_OK,response_model=List[ReadProduct])
@@ -46,6 +60,8 @@ async def get_products():
 # this is for getting a single product
 @product_router.get("/{id}",status_code=status.HTTP_200_OK,response_model=ReadProduct)
 async def get_product(id:str):
+    if not is_valid_objectid(id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
     product=Product.find_one({"_id":ObjectId(id)})
     if product==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
@@ -65,7 +81,9 @@ async def create_product(product:CreateProduct,Authorize:dict=Depends(jwt_requir
     return deserialize_product(new_product)
 
 @product_router.post("/upload/{id}",status_code=status.HTTP_201_CREATED)
-async def upload_image(request:Request,id:str,images: List[UploadFile] = File(...),Authorize:dict=Depends(jwt_required)):
+async def upload_images(request:Request,id:str,images: List[UploadFile] = File(...),Authorize:dict=Depends(jwt_required)):
+    if not is_valid_objectid(id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
     product = Product.find_one({"_id":ObjectId(id)})
     if product==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
@@ -88,16 +106,16 @@ async def upload_image(request:Request,id:str,images: List[UploadFile] = File(..
 # deleting a product from the database
 @product_router.delete("/{id}",status_code=status.HTTP_204_NO_CONTENT)
 async def delete_product(id:str,Authorize:dict=Depends(jwt_required)):
-
+    if not is_valid_objectid(id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
     product=Product.find_one({"_id":ObjectId(id)})
     if product==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
     if product["user"]!=Authorize["id"]:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Unauthorized access")
     # removing images from the server (static folder)
-    for image in product["images_url"]:
-        path=re.findall(r'static/.+',image.url)
-        os.remove(str(path[0]))
+    image_urls=product["images_url"]
+    await remove_images(image_urls)
 
     Product.delete_one({"_id":ObjectId(id)})
     return JSONResponse(content={"detail":"product deleted"})
@@ -106,7 +124,8 @@ async def delete_product(id:str,Authorize:dict=Depends(jwt_required)):
 #  updating a single product 
 @product_router.patch("/{id}",status_code=status.HTTP_202_ACCEPTED)
 async def update_product(id:str,data:CreateProduct,Authorize:dict=Depends(jwt_required)):
-
+    if not is_valid_objectid(id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
     product=Product.find_one({"_id":ObjectId(id)})
     if product==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
