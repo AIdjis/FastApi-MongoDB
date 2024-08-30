@@ -4,9 +4,10 @@ from app.database import client
 from bson import ObjectId
 from datetime import datetime
 from .security import jwt_required
-from app.schemas import UserProfile
+from app.schemas import UserProfile,UpdateUserProfile
 import secrets
 import aiofiles
+from app.authentication import username_regex
 
 profile_router=APIRouter(prefix="/profile",tags=["Profile"])
 
@@ -21,7 +22,7 @@ def deserialize_data(user):
             "created_at":user["created_at"]}
 
 # retrieve user profile data
-@profile_router.get("/",status_code=status.HTTP_200_OK,response_model=UserProfile)
+@profile_router.get("/{user_name}",status_code=status.HTTP_200_OK,response_model=UserProfile)
 async def get_profile(user: dict =Depends(jwt_required)):
     profile=User.find_one({"_id":ObjectId(user["id"])})
     if profile==None:
@@ -30,13 +31,13 @@ async def get_profile(user: dict =Depends(jwt_required)):
 
 #logout the user
 @profile_router.get('/logout', status_code=status.HTTP_200_OK)
-def logout(response: Response, Authorize: dict = Depends(jwt_required)):
+async def logout(response: Response, Authorize: dict = Depends(jwt_required)):
     response.delete_cookie(key='access_token', domain=None, httponly=True, samesite="lax")
-    response.delete_cookie('refresh_token', domain=None, httponly=True, samesite="lax")
+    response.delete_cookie(key='refresh_token', domain=None, httponly=True, samesite="lax")
     response.set_cookie('logged_in', '', -1)
     return {'detail': 'success'}
 
-
+#upload profile picture of the user
 @profile_router.post('/upload', status_code=status.HTTP_200_OK)
 async def upload_picture(request: Request, picture: UploadFile = File(...),Authorize: dict = Depends(jwt_required)):
     user= User.find_one({"_id":ObjectId(Authorize["id"])})
@@ -53,3 +54,15 @@ async def upload_picture(request: Request, picture: UploadFile = File(...),Autho
     
     return JSONResponse(content={"detail": "image uploaded"})
 
+# update user profile
+@profile_router.patch('/update', status_code=status.HTTP_200_OK)
+async def update_profile(data: UpdateUserProfile, Authorize: dict = Depends(jwt_required)):
+    user= User.find_one({"_id":ObjectId(Authorize["id"])})
+    if user==None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="user not found")
+    if User.find_one({"username":data.username}):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="username already taken")
+    if not username_regex.match(data.username):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="invalid username")
+    User.update_one({"_id":ObjectId(Authorize["id"])},{"$set":dict(data)})
+    return deserialize_data(user)
