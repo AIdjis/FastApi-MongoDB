@@ -64,6 +64,11 @@ class UserProfile(BaseModel):
     email:EmailStr=Field(...,max_length=50)
     created_at:Union[datetime,None]
 
+class UpdateUserProfile(BaseModel):
+    name:str
+    username:str
+
+
 
 
    
