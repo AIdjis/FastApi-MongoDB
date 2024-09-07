@@ -104,3 +104,42 @@ def test_create_product_missing_field(clear_db):
                 }
             ]
         }
+def test_create_product_invalid_field(clear_db):
+    # first create a new user and verify it
+    register_response = client.post("/auth/signup",json=test_user)
+    user = User.find_one({"email":test_user["email"]})
+    user = deserialize_user(user)
+    verification_code = pyotp.TOTP(user["otp_secret"],interval=600).now()
+    verify_response = client.post("/auth/verify",json={"id":register_response.json()["id"],"verification_code":verification_code})
+    # then create a new product by the new user with invalid price field type
+    response=client.post("/product",json={"name":"test","description":"test","price":"test","currency":"USD","category":"test","location":"test"},headers={"Authorization":f"Bearer {verify_response.json()['access_token']}"})
+    assert response.status_code == 422
+    assert response.json() == {
+        'detail':[
+            {
+                'input': 'test', 
+                'loc': [
+                    'body', 
+                    'price'
+                ], 
+                'msg': 'Input should be a valid number, unable to parse string as a ''number', 
+                'type': 'float_parsing'
+            },
+            {
+              'input': {
+                  'category': 'test',
+                  'currency': 'USD',
+                   'description': 'test',
+                   'location': 'test',
+                  'name': 'test',
+                  'price': 'test',
+               },
+               'loc': [
+                  'body',
+                  'condition',
+             ],
+               'msg': 'Field required',
+               'type': 'missing',
+            }
+        ]
+    }
