@@ -33,6 +33,7 @@ def deserialize_product(product)-> dict:
         'location':product["location"],
         'condition':product["condition"],
         'currency':product["currency"],
+        'views':product["views"]
         }
 
 def remove_images(images_urls:List[str]):
