@@ -65,6 +65,7 @@ async def get_product(id:str):
     product=Product.find_one({"_id":ObjectId(id)})
     if product==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
+    product["views"]=product["views"]+1
     return deserialize_product(product)
 
 
@@ -76,6 +77,7 @@ async def create_product(product:CreateProduct,Authorize:dict=Depends(jwt_requir
     product["is_available"]=True
     product["images_url"]=[]
     product["user"]=Authorize["id"]
+    product["views"]=0
     new_product=Product.insert_one(product)
     new_product=Product.find_one({"_id":new_product.inserted_id})
     return deserialize_product(new_product)
