@@ -15,7 +15,7 @@ class ReadProduct(BaseModel):
     location: str
     condition: str
     is_available: bool
-    viwes: int
+    views: int
     images_url: List[str]=[]
     create_at: Union[datetime, None]
 
