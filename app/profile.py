@@ -19,9 +19,10 @@ def deserialize_data(user):
             "name":user["name"],
             "username":user["username"],
             "email":user["email"],
-            "created_at":user["created_at"]}
+            "created_at":user["created_at"],
+            "picture":user["picture"]}
 
-# retrieve user profile data
+# retrieve user profile data publicly accessible for everyone
 @profile_router.get("/{user_name}",status_code=status.HTTP_200_OK,response_model=UserProfile)
 async def get_profile(user: dict =Depends(jwt_required)):
     profile=User.find_one({"_id":ObjectId(user["id"])})

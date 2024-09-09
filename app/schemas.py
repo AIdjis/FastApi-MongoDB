@@ -62,7 +62,7 @@ class ForgotPassword(BaseModel):
 class UserProfile(BaseModel):
     name:str
     username:str
-    email:EmailStr=Field(...,max_length=50)
+    picture : Union[str,None]
     created_at:Union[datetime,None]
 
 class UpdateUserProfile(BaseModel):
