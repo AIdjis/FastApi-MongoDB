@@ -65,9 +65,19 @@ class UserProfile(BaseModel):
     picture : Union[str,None]
     created_at:Union[datetime,None]
 
+# read user profile for authenticated user 
+class ReadUserProfile(BaseModel):
+    id:str
+    name:str
+    username:str
+    picture : Union[str,None]
+    email:Union[EmailStr,None]
+    created_at:Union[datetime,None]
+
 class UpdateUserProfile(BaseModel):
     name:str
     username:str
+
 
 
 

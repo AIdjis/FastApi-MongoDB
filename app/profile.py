@@ -4,7 +4,7 @@ from app.database import client
 from bson import ObjectId
 from datetime import datetime
 from .security import jwt_required
-from app.schemas import UserProfile,UpdateUserProfile
+from app.schemas import UserProfile,UpdateUserProfile,ReadUserProfile
 import secrets
 import aiofiles
 from app.authentication import username_regex
@@ -24,8 +24,16 @@ def deserialize_data(user):
 
 # retrieve user profile data publicly accessible for everyone
 @profile_router.get("/{user_name}",status_code=status.HTTP_200_OK,response_model=UserProfile)
-async def get_profile(user: dict =Depends(jwt_required)):
-    profile=User.find_one({"_id":ObjectId(user["id"])})
+async def get_profile(user_name:str):
+    profile=User.find_one({"username": user_name})
+    if profile==None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="user not found")
+    return deserialize_data(profile)
+
+# retrieve user profile data only for authenticated users
+@profile_router.get("/",status_code=status.HTTP_200_OK,response_model=ReadUserProfile)
+async def get_profile_me(Authorize: dict = Depends(jwt_required)):
+    profile=User.find_one({"_id":ObjectId(Authorize["id"])})
     if profile==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="user not found")
     return deserialize_data(profile)
