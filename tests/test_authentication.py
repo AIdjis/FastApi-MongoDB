@@ -57,8 +57,7 @@ def test_signup_user_invalid_email(clear_db):
         'detail': [
             {
                 'ctx': {
-                    'reason': 'The email address is not valid. It must have exactly one '
-                    '@-sign.',
+                   'reason': 'An email address must have an @-sign.',
                 },
               'input': 'userexample.com',
               'input': 'test',
@@ -66,8 +65,8 @@ def test_signup_user_invalid_email(clear_db):
                     'body',
                     'email',
                 ],
-                'msg': 'value is not a valid email address: The email address is not '
-                'valid. It must have exactly one @-sign.',
+                'msg': 'value is not a valid email address: An email address must have an '
+                '@-sign.',
                 'type': 'value_error',
             },
         ],
