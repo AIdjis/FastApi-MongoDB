@@ -1,5 +1,5 @@
 # for fastapi and mongodb
-fastapi ==0.111.0
+fastapi ==0.114.2
 pymongo==4.7.2
 
 # for uploading images
