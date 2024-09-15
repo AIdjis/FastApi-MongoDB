@@ -3,8 +3,8 @@ from fastapi.responses import JSONResponse
 from app.database import client
 from bson import ObjectId
 from datetime import datetime
-from .security import jwt_required
-from app.schemas import UserProfile,UpdateUserProfile,ReadUserProfile
+from .security import jwt_required,verify_password
+from app.schemas import UserProfile,UpdateUserProfile,ReadUserProfile,DeleteUserProfile
 import secrets
 import aiofiles
 from app.authentication import username_regex
@@ -20,7 +20,8 @@ def deserialize_data(user):
             "username":user["username"],
             "email":user["email"],
             "created_at":user["created_at"],
-            "picture":user["picture"]}
+            "picture":user["picture"],
+            "password":user["password"],}
 
 # retrieve user profile data publicly accessible for everyone
 @profile_router.get("/{user_name}",status_code=status.HTTP_200_OK,response_model=UserProfile)
@@ -65,13 +66,27 @@ async def upload_picture(request: Request, picture: UploadFile = File(...),Autho
 
 # update user profile
 @profile_router.patch('/update', status_code=status.HTTP_200_OK)
-async def update_profile(data: UpdateUserProfile, Authorize: dict = Depends(jwt_required)):
+async def update_profile(body: UpdateUserProfile, Authorize: dict = Depends(jwt_required)):
     user= User.find_one({"_id":ObjectId(Authorize["id"])})
     if user==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="user not found")
-    if User.find_one({"username":data.username}):
+    if User.find_one({"username":body.username}):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="username already taken")
-    if not username_regex.match(data.username):
+    if not username_regex.match(body.username):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="invalid username")
     User.update_one({"_id":ObjectId(Authorize["id"])},{"$set":dict(data)})
+    return deserialize_data(user)
+
+# delete user profile only for authenticated users 
+# required a password to delete the User 
+@profile_router.delete('/delete', status_code=status.HTTP_200_OK)
+async def delete_profile(body: DeleteUserProfile,Authorize: dict = Depends(jwt_required)):
+    user= User.find_one({"_id":ObjectId(Authorize["id"])})
+    if user==None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="user not found")
+    # checking if the password is correct
+    user_data=deserialize_data(user)
+    if not verify_password(body["password"],user_data["password"]):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="password is incorrect")
+    User.delete_one({"_id":ObjectId(Authorize["id"])})
     return deserialize_data(user)

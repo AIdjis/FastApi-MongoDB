@@ -58,7 +58,6 @@ class ForgotPassword(BaseModel):
     password:str =Field(...,min_length=8,max_length=64)
 
 # user profile schemas
-
 class UserProfile(BaseModel):
     name:str
     username:str
@@ -78,7 +77,8 @@ class UpdateUserProfile(BaseModel):
     name:str
     username:str
 
-
+class DeleteUserProfile(BaseModel):
+    password: str =Field(...,min_length=8,max_length=64)
 
 
 
