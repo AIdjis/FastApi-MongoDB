@@ -16,7 +16,7 @@ class ReadProduct(BaseModel):
     condition: str
     is_available: bool
     views: int
-    images_url: List[str]=[]
+    images_urls: List[str]=[]
     create_at: Union[datetime, None]
 
 
@@ -29,6 +29,8 @@ class CreateProduct(BaseModel):
     condition: str
     currency: str =Field(default="USD",max_length=3)
 
+class DeleteProductImages(BaseModel):
+    image_url: List[str]
 
 
 # user authentication shemas
