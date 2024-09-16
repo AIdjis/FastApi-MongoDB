@@ -74,7 +74,7 @@ async def update_profile(body: UpdateUserProfile, Authorize: dict = Depends(jwt_
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="username already taken")
     if not username_regex.match(body.username):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="invalid username")
-    User.update_one({"_id":ObjectId(Authorize["id"])},{"$set":dict(data)})
+    User.update_one({"_id":ObjectId(Authorize["id"])},{"$set":dict(body)})
     return deserialize_data(user)
 
 # delete user profile only for authenticated users 
