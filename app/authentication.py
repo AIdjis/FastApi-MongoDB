@@ -49,6 +49,7 @@ async def signup(body:CreateUser,background_tasks:BackgroundTasks):
     valid_user["created_at"]=datetime.today()
     valid_user["is_active"]=True
     valid_user["is_verified"]=False
+    valid_user["picture"]=""
 
     # generating the on otp code and sending it via email
     otp_base32 = pyotp.random_base32()
