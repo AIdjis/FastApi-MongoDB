@@ -1,4 +1,3 @@
-from passlib.context import CryptContext
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from fastapi import Depends,HTTPException,status,Request
 from jwt.exceptions import PyJWTError,ExpiredSignatureError,DecodeError
@@ -7,10 +6,9 @@ import os
 import dotenv
 from jwt import encode,decode
 from datetime import datetime
-
+import bcrypt
 dotenv.load_dotenv(".env")
 
-password_context = CryptContext(schemes=["bcrypt"],deprecated="auto")
 oauth_2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
 
@@ -18,8 +16,9 @@ oauth_2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 in the .env file we have stored the mail credentials:
 MAIL_USERNAME = YOUR MAIL
 MAIL_PASSWORD = YOUR MAIL PASSWORD
+
 """
-# print(os.getenv('MAIL_USERNAME'))
+
 # configuring the mail
 conf=ConnectionConfig(
     MAIL_USERNAME = os.getenv('MAIL_USERNAME'),
@@ -34,12 +33,13 @@ conf=ConnectionConfig(
 
 
 # hashing password
-def get_password_hash(password):
-    return password_context.hash(password)
+def get_password_hash(password: str) -> str:
+    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    return hashed.decode('utf-8')   
 
 # verifying if the password is correct
-def verify_password(plain_password, hashed_password):
-    return password_context.verify(plain_password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 
 # asychronously function for sending email
