@@ -1,5 +1,5 @@
 # Ignore all pipenv files
-market-place/
+Pipfile
 
 # Ignore all __pycache__ files
 __pycache__/
