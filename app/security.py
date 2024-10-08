@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 import os
 import dotenv
 from jwt import encode,decode
-from datetime import datetime
+from datetime import datetime,timezone
 import bcrypt
 dotenv.load_dotenv(".env")
 
@@ -58,7 +58,7 @@ in the .env file we have stored the secret key:
 SECRET_KEY = YOUR SECRET KEY
 """
 async def create_jwt_token(data:dict,expires_time:datetime,mode:str):
-    data["exp"] = datetime.utcnow() + expires_time
+    data["exp"] = datetime.now(timezone.utc)+ expires_time
     data["mode"] = mode
     encoded_jwt = encode(algorithm="HS256",key=os.getenv('SECRET_KEY'),payload=data)
     return encoded_jwt
