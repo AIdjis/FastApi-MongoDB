@@ -29,6 +29,10 @@ async def get_profile(user_name:str):
     profile=User.find_one({"username": user_name})
     if profile==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="user not found")
+    if not profile["is_active"]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="user not found")
+    if not profile["is_verified"]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="user not found")
     return deserialize_data(profile)
 
 # retrieve user profile data only for authenticated users
