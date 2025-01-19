@@ -63,9 +63,12 @@ async def get_product(id:str):
     if not is_valid_objectid(id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
     product=Product.find_one({"_id":ObjectId(id)})
+    views=product["views"]+1
+    Product.update_one({"_id":ObjectId(id)},{"$set":{"views":views}})
     if product==None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Product not found")
-    product["views"]=product["views"]+1
+    # incrementing the views
+    product["views"]=views
     return deserialize_product(product)
 
 
