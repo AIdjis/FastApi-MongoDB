@@ -4,6 +4,7 @@ from .conftest import clear_db
 import pyotp
 from app.authentication import User
 
+
 client = TestClient(app)
 
 # test user example
@@ -143,3 +144,18 @@ def test_create_product_invalid_field(clear_db):
             }
         ]
     }
+
+# test the view count of a product
+def test_view_count(clear_db):
+    # first create a new user and verify it
+    register_response = client.post("/auth/signup",json=test_user)  
+    user = User.find_one({"email":test_user["email"]})
+    user = deserialize_user(user)
+    verification_code = pyotp.TOTP(user["otp_secret"],interval=600).now()
+    verify_response = client.post("/auth/verify",json={"id":register_response.json()["id"],"verification_code":verification_code})
+    # then create a new product by the new user
+    product_response = client.post("/product",json=test_product,headers={"Authorization":f"Bearer {verify_response.json()['access_token']}"})
+    response = client.get("/product/"+product_response.json()["id"])
+    assert response.status_code == 200
+    assert response.json()["views"] == 1
+
